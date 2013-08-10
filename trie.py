@@ -152,7 +152,7 @@ class _Trie(object):
         self.children.append(child)
         child.parent = self
 
-    def _full_label_as_str(self):
+    def _full_label_to_str(self):
         """
         Converts the list self.full_label, into a string
 
@@ -174,7 +174,7 @@ class _Trie(object):
         if self.is_root():
             print " "
         else:
-            print padding[:-1] + "+-" + self._full_label_as_str()
+            print padding[:-1] + "+-" + self._full_label_to_str()
 
         padding += ' '
 
@@ -188,9 +188,10 @@ class _Trie(object):
                 else:
                     child.display(padding=padding + '|')
             else:
-                print padding + '+-' + child._full_label_as_str() + "$"
+                print padding + '+-' + child._full_label_to_str() + "$"
 
-    def as_html(self, report_filename=None):
+    def as_html(self, report_filename=None, full_label=False,
+                title="Hierarchical report"):
         """
         Converts self into an html string.
 
@@ -201,9 +202,10 @@ class _Trie(object):
 
         """
 
-        html = "%s<ul>%s</ul>\r" % (self.label,
-                                  "".join(["<li>%s</li>\r" % child.as_html()
-                                           for child in self.children]))
+        html = "%s<ul>%s</ul>\r" % (
+            self.label if not full_label else self._full_label_to_str(),
+            "".join(["<li>%s</li>\r" % child.as_html(full_label=full_label)
+                     for child in self.children]))
 
         # handle tabs
         html = html.replace(" ", "&nbsp;")
@@ -216,9 +218,14 @@ class _Trie(object):
 
             copy_web_conf_files(os.path.dirname(report_filename))
 
+            # grab report template
             report = open("hierarchical_report_template.tmpl.html").read()
-            report = report.replace("{{i_am_the_body}}", html)
 
+            # generate report from template
+            report = report.replace("{{i_am_the_body}}", html)
+            report = report.replace("{{i_am_the_title}}", title)
+
+            # write report unto disk
             open(report_filename, 'a').write(report)
 
             print report
@@ -227,30 +234,46 @@ class _Trie(object):
         return html
 
 
-def make_bt(depth, label=None, parent=None):
+def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
     """
-    Creates a Binary Tree (BT).
+    Creates an n-ary tree of given depth.
 
     Parameters
     ----------
     depth: int
         depth of the binary tree
-    label: int, optional (default 0)
+    n: int
+        arity of the tree
+    label: int, optional (default None)
         label of root node of the binary tree
     parent: Trie object, optional (default None)
         parent node of the binary tree
+    alphabet: list of length n, optional (default)
+        alphabet of symbols
 
     """
+
+    label = alphabet[label] if not None in [alphabet, label] else label
 
     node = _Trie(label=label, parent=parent)
 
     if depth == 0:
         return node
     else:
-        for label in xrange(2):
-            make_bt(depth - 1, label=label, parent=node)
+        for label in xrange(n):
+            make_nary_tree(depth - 1, n, label=label, parent=node,
+                           alphabet=alphabet)
 
     return node
+
+
+def make_bt(depth):
+    """
+    Creates a binary tree of given depth.
+
+    """
+
+    return make_nary_tree(depth, 2)
 
 
 def as_trie(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
@@ -394,7 +417,22 @@ def linux_tree(directory, depth=None,
 
 
 if __name__ == "__main__":
-    report_filename = "/tmp/pytries_demo/report.html"
+    # current directory
+    print "\r\nBuilding current directory listing..."
+    linux_tree(os.path.abspath("."), display=False).as_html(
+        report_filename='/tmp/pytries_demo/linux_tree.html',
+        title="Current directory listing"
+        )
 
-    # expand current directory
-    linux_tree(".", display=False).as_html(report_filename=report_filename)
+    # binary tree
+    print "\r\nBuilding binary tree..."
+    make_bt(15).as_html(report_filename="/tmp/pytries_demo/bt.html",
+                             title="Binary Tree",
+                             full_label=True)
+
+    # english 3-grams
+    print "\r\nBuilding all english 2-grams..."
+    make_nary_tree(2, 26, alphabet=[chr(x + ord('a')) for x in xrange(26)]
+                   ).as_html(report_filename="/tmp/pytries_demo/2_grams.html",
+                             title="English Language 2-grams",
+                             full_label=True)
