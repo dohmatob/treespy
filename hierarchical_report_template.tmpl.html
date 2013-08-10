@@ -1,0 +1,37 @@
+<!-- author: d0hm4t06 3lv15 d0p91m4 -->
+
+<html>
+  <head>
+    <title>Hierarchical report</title>
+  </head>
+
+  <body>
+    <h2>Hierarchical report</h2>
+    <hr/>
+
+    {{i_am_the_body}}
+
+    <!-- It's time for javascript, folks -->
+    <script type="text/javascript" src="./jquery.min.js"></script>
+    <script type="text/javascript" src="./base.js"></script>
+    <script type="text/javascript">
+      $(function(){
+      $('li')
+      .css('pointer','default')
+      .css('list-style-image','none');
+      $('li:has(ul)')
+      .click(function(event){
+      if (this == event.target) {
+      $(this).css('list-style-image',
+      (!$(this).children().is(':hidden')) ? 'url(plusbox.gif)' : 'url(minusbox.gif)');
+      $(this).children().toggle('slow');
+      }
+      return false;
+			})
+      .css({cursor:'pointer', 'list-style-image':'url(plusbox.gif)'})
+      .children().hide();
+      $('li:not(:has(ul))').css({cursor:'default', 'list-style-image':'none'});
+      });
+    </script>
+  </body>
+</html>

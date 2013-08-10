@@ -3,6 +3,10 @@
 
 """
 
+import os
+import shutil
+import glob
+
 INFINITY = 1e100
 
 
@@ -43,12 +47,26 @@ def _is_bad_item(_):
 
 
 def _handle_filename(x):
-    import os
+    """
+    Default function.
+
+    """
 
     for ext in ['.txt', '.md', '.rst']:
         if x.endswith(ext):
             return os.path.basename(x) + list2html(
                 open(x).read().rstrip("\r\n").split("\n"))
+
+
+def copy_web_conf_files(output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for icon in glob.glob("icons/*.gif"):
+        shutil.copy(icon, output_dir)
+
+    for js in glob.glob("js/*.js"):
+        shutil.copy(js, output_dir)
 
 
 class _Trie(object):
@@ -172,7 +190,7 @@ class _Trie(object):
             else:
                 print padding + '+-' + child._full_label_as_str() + "$"
 
-    def as_html(self):
+    def as_html(self, report_filename=None):
         """
         Converts self into an html string.
 
@@ -189,6 +207,22 @@ class _Trie(object):
 
         # handle tabs
         html = html.replace(" ", "&nbsp;")
+
+        if not report_filename is None:
+            report_filename = os.path.abspath(report_filename)
+
+            if os.path.isfile(report_filename):
+                os.remove(report_filename)
+
+            copy_web_conf_files(os.path.dirname(report_filename))
+
+            report = open("hierarchical_report_template.tmpl.html").read()
+            report = report.replace("{{i_am_the_body}}", html)
+
+            open(report_filename, 'a').write(report)
+
+            print report
+            print "\r\nHTML report written to %s\r\n" % report_filename
 
         return html
 
@@ -357,3 +391,10 @@ def linux_tree(directory, depth=None,
         trie.display()
 
     return trie
+
+
+if __name__ == "__main__":
+    report_filename = "/tmp/pytries_demo/report.html"
+
+    # expand current directory
+    linux_tree(".", display=False).as_html(report_filename=report_filename)
