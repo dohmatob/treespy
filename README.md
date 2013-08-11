@@ -10,8 +10,8 @@ Demo
 ====
 Simply run the following (in a terminal):
 
-  python tree.py
+    python tree.py
   
 Then open the indicated html files in firefox, and enjoy.
 
-(c) d0hm4t06 3LV1S d0p91m4 <gmdopp@gmail.com>
+(c) d0hm4t06 3LV15 d0p91m4 <gmdopp@gmail.com>
