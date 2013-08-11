@@ -469,14 +469,7 @@ def folder2tree(folder, current_depth=0, max_depth=None, parent=None,
 
 
 if __name__ == "__main__":
-    output_dir = "/tmp/pytrees_demo"
-
-    # current directory listing
-    print "\r\nBuilding current directory listing..."
-    folder2tree(os.path.abspath(".")).as_html(
-        report_filename=os.path.join(output_dir, 'linux_tree.html'),
-        title="Current directory listing"
-        )
+    output_dir = "/tmp/treespy_demo"
 
     # binary tree
     print "\r\nBuilding binary tree..."
@@ -498,4 +491,11 @@ if __name__ == "__main__":
     dict2tree(locals(), name="locals").as_html(
         report_filename=os.path.join(output_dir, "locals.html"),
         title="Python locals"
+        )
+
+    # current directory listing
+    print "\r\nBuilding current directory listing..."
+    folder2tree(os.path.abspath(".")).as_html(
+        report_filename=os.path.join(output_dir, 'linux_tree.html'),
+        title="Current directory listing"
         )
