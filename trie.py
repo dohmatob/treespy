@@ -75,7 +75,7 @@ class _Trie(object):
         """
         Parameters
         ----------
-        label: some DataType
+        label: some DataType element, optional (default None)
             the label of this node
         parent: `_Trie` object, optional (default None)
             the parent of this node
@@ -202,9 +202,9 @@ class _Trie(object):
 
         """
 
-        html = "%s<ul>%s</ul>\r" % (
+        html = "%s<ul>%s</ul>\r\n" % (
             self.label if not full_label else self._full_label_to_str(),
-            "".join(["<li>%s</li>\r" % child.as_html(full_label=full_label)
+            "".join(["<li>%s</li>\r\n" % child.as_html(full_label=full_label)
                      for child in self.children]))
 
         # handle tabs
@@ -233,6 +233,22 @@ class _Trie(object):
 
         return html
 
+    def as_dict(self):
+        """
+        Converts trie into dict.
+
+        Returns
+        -------
+        name: string
+            name of the dict
+        d: dict
+            the dict representation of this trie
+
+        """
+
+        return self.label, dict((child.label, child.as_dict()[1])
+                                for child in self.children)
+
 
 def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
     """
@@ -253,7 +269,9 @@ def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
 
     """
 
-    label = alphabet[label] if not None in [alphabet, label] else label
+    label = alphabet[label] if (not None in [alphabet, label]
+                                ) and isinstance(
+        label, int) and 0 <= label < n else label
 
     node = _Trie(label=label, parent=parent)
 
@@ -326,16 +344,15 @@ def as_trie(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
     else:
         # expand each item which is not bad
         for x in expand(data):
+            print x,
             if not is_bad_item(x):
-                try:  # exceptions might occur; consider them as dead-ends
-                    if get_head(x) == -1:
-                        continue
-
-                    as_trie(x, get_head, expand,
-                            is_leaf, is_bad_item=is_bad_item, depth=depth - 1,
-                            parent=node, full_label_to_str=full_label_to_str)
-                except:
+                if get_head(x) == -1:
                     continue
+
+                as_trie(x, get_head, expand,
+                        is_leaf, is_bad_item=is_bad_item, depth=depth - 1,
+                        parent=node, full_label_to_str=full_label_to_str)
+        print
 
     # return _Trie node
     return node
@@ -416,23 +433,65 @@ def linux_tree(directory, depth=None,
     return trie
 
 
+def dict2trie(d, name="", parent=None):
+    """
+    Converts a dict into _Trie object.
+
+    Parameters
+    ----------
+    d: dict
+        dict object to be converted intto _Trie object
+    name: string, optional (default "")
+        the name of the dict
+    parent: _Trie object, optional (default None)
+        parent node of the node being generated
+
+    Returns
+    -------
+    node: _Trie object
+        trie representation of the input dict
+
+    """
+
+    node = _Trie(label=name, parent=parent)
+
+    if isinstance(d, dict):
+        for k, v in d.iteritems():
+            if isinstance(v, dict):
+                dict2trie(v, name=k, parent=node)
+            else:
+                _Trie(label='%s: %s' % (k, v), parent=node)
+
+    return node
+
+
 if __name__ == "__main__":
-    # current directory
+    output_dir = "/tmp/pytries_demo"
+
+    # current directory listing
     print "\r\nBuilding current directory listing..."
     linux_tree(os.path.abspath("."), display=False).as_html(
-        report_filename='/tmp/pytries_demo/linux_tree.html',
+        report_filename=os.path.join(output_dir, 'linux_tree.html'),
         title="Current directory listing"
         )
 
     # binary tree
     print "\r\nBuilding binary tree..."
-    make_bt(15).as_html(report_filename="/tmp/pytries_demo/bt.html",
+    make_bt(10).as_html(report_filename=os.path.join(output_dir, "bt.html"),
                              title="Binary Tree",
                              full_label=True)
 
     # english 3-grams
     print "\r\nBuilding all english 2-grams..."
     make_nary_tree(2, 26, alphabet=[chr(x + ord('a')) for x in xrange(26)]
-                   ).as_html(report_filename="/tmp/pytries_demo/2_grams.html",
+                   ).as_html(report_filename=os.path.join(output_dir,
+                                                          "2_grams.html"),
                              title="English Language 2-grams",
                              full_label=True)
+
+    # locals
+    print "\r\nBuilding locals()..."
+    dict2trie(locals(), name="locals").as_html(
+        report_filename=os.path.join(output_dir, "locals.html"),
+        title="Python locals"
+        )
