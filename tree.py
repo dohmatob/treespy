@@ -28,36 +28,6 @@ def list2html(l):
     return "<ul>%s</ul>" % "".join(["<li>%s</li>" % str(x) for x in l])
 
 
-def _is_leaf(_):
-    """
-    Default function.
-
-    """
-
-    return False
-
-
-def _is_bad_item(_):
-    """
-    Default function.
-
-    """
-
-    return False
-
-
-def _handle_filename(x):
-    """
-    Default function.
-
-    """
-
-    for ext in ['.txt', '.md', '.rst']:
-        if x.endswith(ext):
-            return os.path.basename(x) + list2html(
-                open(x).read().rstrip("\r\n").split("\n"))
-
-
 def copy_web_conf_files(output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -70,6 +40,11 @@ def copy_web_conf_files(output_dir):
 
 
 class _Tree(object):
+    """
+    Tree data structure.
+
+    """
+
     def __init__(self, label=None, parent=None,
                  full_label_to_str=_full_label_to_str):
         """
@@ -152,15 +127,18 @@ class _Tree(object):
         self.children.append(child)
         child.parent = self
 
-    def _full_label_to_str(self):
+        return self
+
+    def _full_label_to_str(self, full_label=True):
         """
         Converts the list self.full_label, into a string
 
         """
 
-        return self.full_label_to_str(self.full_label)
+        return str(self.label) if not full_label else self.full_label_to_str(
+            self.full_label)
 
-    def display(self, padding=''):
+    def display(self, padding='', full_label=True, root_here=False):
         """
         Displays self, in a way similarly to the unix `tree` command.
 
@@ -171,10 +149,11 @@ class _Tree(object):
 
         """
 
-        if self.is_root():
-            print " "
+        if self.is_root() or root_here:
+            print " %s" % str(self.label) if root_here else ""
         else:
-            print padding[:-1] + "+-" + self._full_label_to_str()
+            print padding[:-1] + "+-" + self._full_label_to_str(
+                full_label=full_label)
 
         padding += ' '
 
@@ -184,11 +163,27 @@ class _Tree(object):
             print padding + "|"
             if not child.is_leaf():
                 if count == len(self.children):
-                    child.display(padding=padding + ' ')
+                    child.display(padding=padding + ' ', full_label=full_label)
                 else:
-                    child.display(padding=padding + '|')
+                    child.display(padding=padding + '|', full_label=full_label)
             else:
-                print padding + '+-' + child._full_label_to_str() + "$"
+                print padding + '+-' + child._full_label_to_str(
+                    full_label=full_label) + "$"
+
+    def is_ul(self):
+        """
+        Checks wether this node is a ul.
+
+        """
+
+        for ul_marker in ['<ul>', '</ul>']:
+            if not ul_marker in str(self.label):
+                return False
+            for li_marker in ['<li>', '</li>']:
+                if not li_marker in str(self.label):
+                    return False
+
+        return True
 
     def as_html(self, report_filename=None, full_label=False,
                 title="Hierarchical report"):
@@ -202,10 +197,30 @@ class _Tree(object):
 
         """
 
-        html = "%s<ul>%s</ul>\r\n" % (
-            self.label if not full_label else self._full_label_to_str(),
-            "".join(["<li>%s</li>\r\n" % child.as_html(full_label=full_label)
-                     for child in self.children]))
+        label = self.label if not full_label else self._full_label_to_str()
+
+        open_ul, close_ul = ("", "")
+        if not self.is_leaf():
+            open_ul, close_ul = ("<ul>", "</ul>")
+
+        html = "%s%s" % (label, open_ul)
+
+        # all non-leaf children
+        for child in self.children:
+            if not child.is_leaf():
+                html += "<li>%s</li>" % child.as_html(full_label=full_label)
+
+        # all ul leaf children
+        for child in self.children:
+            if child.is_leaf() and child.is_ul():
+                html += "<li>%s</li>" % child.as_html(full_label=full_label)
+
+        # all leaf non-ul children
+        for child in self.children:
+            if child.is_leaf() and not child.is_ul():
+                html += "<li>%s</li>" % child.as_html(full_label=full_label)
+
+        html += close_ul
 
         # handle tabs
         html = html.replace(" ", "&nbsp;")
@@ -248,6 +263,51 @@ class _Tree(object):
 
         return self.label, dict((child.label, child.as_dict()[1])
                                 for child in self.children)
+
+    # def merge(self, other_tree, **root_kwargs):
+    #     """
+    #     Merges self with other_tree.
+
+    #     Returns
+    #     -------
+    #     : _Trie object
+    #         the trie resulting from merging self with other_tree
+
+    #     Notes
+    #     -----
+    #     After merging, both self and other tree disown their previous,
+    #     parents.
+
+    #     """
+
+    #     root = _Tree(**root_kwargs)
+
+    #     for child in [self, other_tree]:
+    #         if child.is_root():
+    #             for grandchild in child.children:
+    #                 root.add_child(grandchild)
+    #         else:
+    #             root.add_child(child)
+
+    #     return root
+
+    def get_descendant(self, path):
+        return self if not path else self.children[path[0]].get_descendant(
+            path[1:])
+
+    def __iter__(self):
+        """
+        An iterator on the  nodes of tree rooted at self.
+
+        """
+
+        yield self
+        for child in self.children:
+            for grandchild in child.__iter__():
+                yield grandchild
+
+    def __str__(self):
+        return self.as_dict().__str__()
 
 
 def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
@@ -294,145 +354,6 @@ def make_bt(depth):
     return make_nary_tree(depth, 2)
 
 
-def as_tree(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
-            depth=None, parent=None, full_label_to_str=_full_label_to_str):
-    """
-    Generates a tree representation of given data.
-
-    Parameters
-    ----------
-    data: some DataType object
-        the data to be tree-represented
-    get_head: function
-        a function on `DataType` which returns the head of the data. Thus
-        the function must be useable as follows: head = get_head(data)
-    expand: function
-        a function on `DataType`which returns a generator or list_like of
-        sub-data. Thus the function must be useable as follows: for
-        sub_data in expand(data): do_something(sub_data)
-    is_leaf: function, optional
-        a function on `DataType` which returns True if the data if leaf,
-        and False otherwise.
-    is_bad_item: function, optional
-        a function which, for each item returned by `expand`, whether the
-        item if 'good' (i.e expandable) or not
-    parent: `DataType` object, optional (default None)
-        the parent of the data
-    full_label_to_str: function
-        a function which can join a list of `DataType` heads into a single
-        head. For example if `DataType` represents paths on a linux system
-        the this function would be similar to the os.path.join(function),
-        i.e def full_label_to_str([a, b, ...]): return os.path.join(a, b, ...)
-
-    Returns
-    -------
-    tree: `_Tree` object
-        the tree representation of the data
-
-    """
-
-    # sanitize depth
-    depth = INFINITY if depth is None else depth
-
-    # pack head of data into _Tree node
-    node = _Tree(label=get_head(data, parent), parent=parent,
-                 full_label_to_str=full_label_to_str)
-
-    if is_leaf(data) or depth == 0:
-        # this is a leaf; end of expansion
-        return node
-    else:
-        # expand each item which is not bad
-        for x in expand(data):
-            print x,
-            if not is_bad_item(x):
-                if get_head(x) == -1:
-                    continue
-
-                as_tree(x, get_head, expand,
-                        is_leaf, is_bad_item=is_bad_item, depth=depth - 1,
-                        parent=node, full_label_to_str=full_label_to_str)
-        print
-
-    # return _Tree node
-    return node
-
-
-def linux_tree(directory, depth=None,
-               ignore_if_endswith=[".pyc", "~", "#"],
-               ignore_if_startswith=['#'],
-               handle_filename=_handle_filename,
-               display=True):
-    """
-    A personal implementation of the famous linux tree command.
-
-    Parameters
-    ----------
-    directory: string
-        existing directory full path; directory to be expanded
-    depth: int, optional (default None)
-        max depth for expansion
-    ignore_if_endswith: list of strings, optional (default [".pyc", "~", "#"])
-        file extensions to ignore during expansion
-    ignore_if_startswith: list of strings, optional (default ["#"])
-        file prefices to ignore during expansion
-    cat_if_endswith: list of strings, optional (default [])
-        list of file extensions whose contents will be returned for their
-        head (during calls to get_head(...))
-    display: bool, optional (default True)
-        display final tree structure
-
-    Returns
-    -------
-    tree: `_Tree` object
-        tree representation of the directory
-
-    """
-
-    import os
-
-    def is_leaf(x):
-        return os.path.isfile(x)
-
-    def is_bad_item(x):
-        for ext in ignore_if_endswith:
-            if x.endswith(ext):
-                return True
-
-        for ext in ignore_if_startswith:
-            if x.startswith(ext):
-                return True
-
-        return False
-
-    def get_head(x, parent=None):
-        z = x if parent is None else os.path.basename(x)
-
-        if is_leaf(x):
-            y = handle_filename(x)
-
-            return y if not y is None else z
-        else:
-            return z
-
-    def expand(x):
-        return [os.path.join(x, y) for y in os.listdir(x)]
-
-    def full_label_to_str(full_label):
-        return os.path.join(*tuple(full_label))
-
-    # get tree reprensetation
-    tree = as_tree(directory, get_head, expand, is_leaf=is_leaf,
-                   is_bad_item=is_bad_item, depth=depth,
-                   full_label_to_str=full_label_to_str)
-
-    # display tree
-    if display:
-        tree.display()
-
-    return tree
-
-
 def dict2tree(d, name="", parent=None):
     """
     Converts a dict into _Tree object.
@@ -465,12 +386,77 @@ def dict2tree(d, name="", parent=None):
     return node
 
 
+def folder2tree(folder, current_depth=0, max_depth=None, parent=None,
+                handle_filename=None):
+    """
+    Expands a folder into a tree (cf. linux tree command).
+
+    Parameters
+    ----------
+    folder: string
+        existing folder
+    current_depth: int, optional (default 0)
+        a pointer to the current level in the tree structure
+    max_depth: int, optional (default None)
+        maximum depth to which the folder will be expanded
+    parent: _Trie object, optional (default None)
+        parent of this node
+    handle_filename: (char *)(*)(const char *), optional (default None)
+        function on strings, returing a string. Given a filename, this
+        function should generate a string (perhaps scraped from the file),
+        which will be reported as part of the file info
+
+    """
+
+    def path_join(x):
+        return os.path.join(*tuple(x))
+
+    def get_head(x):
+        head = os.path.abspath(x)
+        if not parent is None:
+            head = os.path.basename(head)
+
+        if os.path.isfile(x):
+            if handle_filename is None:
+                file_data = ""
+                if x.endswith('.txt'  # cat text files
+                              ):
+                    file_data = list2html(open(x).read().rstrip(
+                            "\r\n").split("\n"))
+            else:
+                file_data = handle_filename(x)
+
+            head = head + file_data
+
+        return head
+
+    max_depth = INFINITY if max_depth is None else max_depth
+
+    node = _Tree(label=get_head(folder), parent=parent,
+                 full_label_to_str=path_join)
+
+    if current_depth < max_depth and os.path.isdir(folder):
+        try:
+            # list the folder (sorted)
+            for item in sorted(os.listdir(folder)):
+                item = os.path.join(folder, item)
+                if not parent is None:
+                    item = os.path.join(parent._full_label_to_str(), item)
+                folder2tree(item, parent=node, current_depth=current_depth + 1,
+                            max_depth=max_depth,
+                            handle_filename=handle_filename)
+        except OSError:
+            pass
+
+    return node
+
+
 if __name__ == "__main__":
     output_dir = "/tmp/pytrees_demo"
 
     # current directory listing
     print "\r\nBuilding current directory listing..."
-    linux_tree(os.path.abspath("."), display=False).as_html(
+    folder2tree(os.path.abspath(".")).as_html(
         report_filename=os.path.join(output_dir, 'linux_tree.html'),
         title="Current directory listing"
         )
@@ -491,6 +477,7 @@ if __name__ == "__main__":
 
     # locals
     print "\r\nBuilding locals()..."
+    env = dict(os.environ)
     dict2tree(locals(), name="locals").as_html(
         report_filename=os.path.join(output_dir, "locals.html"),
         title="Python locals"
