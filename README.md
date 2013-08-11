@@ -1,7 +1,7 @@
 pytrees
 =======
 
-Tiny python tool for automatic trie representation of hierarchical data structures (dictionaries, regular
+Tiny python tool for automatic [tree](http://en.wikipedia.org/wiki/Tree_%28data_structure%29) representation of hierarchical data structures (dictionaries, regular
 expressions, directory structure).
 
 It includes automatic generation of html-based jquery-animated reports.
@@ -14,4 +14,12 @@ Simply run the following (in a terminal):
   
 Then open the indicated html files in firefox, and enjoy.
 
-(c) d0hm4t06 3LV15 d0p91m4 <gmdopp@gmail.com>
+LICENCE
+=======
+BSD
+
+TODO
+====
+Improve on this readme.
+
+(c) DOHMATOB Elvis Dopgima <gmdopp@gmail.com>
