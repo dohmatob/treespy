@@ -467,7 +467,7 @@ if __name__ == "__main__":
                              title="Binary Tree",
                              full_label=True)
 
-    # english 3-grams
+    # english 2-grams
     print "\r\nBuilding all english 2-grams..."
     make_nary_tree(2, 26, alphabet=[chr(x + ord('a')) for x in xrange(26)]
                    ).as_html(report_filename=os.path.join(output_dir,
