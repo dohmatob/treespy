@@ -368,7 +368,7 @@ def make_bt(depth, **kwargs):
 
     """
 
-    return make_nary_tree(2, 2, **kwargs)
+    return make_nary_tree(2, depth, **kwargs)
 
 
 def dict2tree(d, name="", parent=None):
@@ -486,7 +486,7 @@ if __name__ == "__main__":
 
     # english 2-grams
     print "\r\nBuilding all english 2-grams..."
-    make_nary_tree(2, 26, alphabet=[chr(x + ord('a')) for x in xrange(26)]
+    make_nary_tree(26, 2, alphabet=[chr(x + ord('a')) for x in xrange(26)]
                    ).as_html(report_filename=os.path.join(output_dir,
                                                           "2_grams.html"),
                              title="English Language 2-grams",
