@@ -29,6 +29,11 @@ def list2html(l):
 
 
 def copy_web_conf_files(output_dir):
+    """
+    Copy web config files to output_dir.
+
+    """
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -42,6 +47,14 @@ def copy_web_conf_files(output_dir):
 class _Tree(object):
     """
     Tree data structure.
+
+    A tree is an acylic digraph. There is a natural ordering on such a
+    structure, namely:
+
+        a < b iff 'a is the parent of b'
+
+    All the children of a node must have distinct labels (similary to names
+    amongst children in a family)
 
     """
 
@@ -176,6 +189,8 @@ class _Tree(object):
 
         """
 
+        # XXX the check done below is only heuristic;
+        # it's not ultimately reliable
         for ul_marker in ['<ul>', '</ul>']:
             if not ul_marker in str(self.label):
                 return False
@@ -228,9 +243,11 @@ class _Tree(object):
         if not report_filename is None:
             report_filename = os.path.abspath(report_filename)
 
+            # remove old report
             if os.path.isfile(report_filename):
                 os.remove(report_filename)
 
+            # copy web config
             copy_web_conf_files(os.path.dirname(report_filename))
 
             # grab report template
@@ -310,16 +327,16 @@ class _Tree(object):
         return self.as_dict().__str__()
 
 
-def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
+def make_nary_tree(n, depth, label=None, parent=None, alphabet=None):
     """
     Creates an n-ary tree of given depth.
 
     Parameters
     ----------
-    depth: int
-        depth of the binary tree
     n: int
         arity of the tree
+    depth: int
+        depth of the binary tree
     label: int, optional (default None)
         label of root node of the binary tree
     parent: Tree object, optional (default None)
@@ -339,19 +356,19 @@ def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
         return node
     else:
         for label in xrange(n):
-            make_nary_tree(depth - 1, n, label=label, parent=node,
+            make_nary_tree(n, depth - 1, label=label, parent=node,
                            alphabet=alphabet)
 
     return node
 
 
-def make_bt(depth):
+def make_bt(depth, **kwargs):
     """
     Creates a binary tree of given depth.
 
     """
 
-    return make_nary_tree(depth, 2)
+    return make_nary_tree(2, 2, **kwargs)
 
 
 def dict2tree(d, name="", parent=None):
