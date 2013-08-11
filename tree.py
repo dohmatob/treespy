@@ -69,7 +69,7 @@ def copy_web_conf_files(output_dir):
         shutil.copy(js, output_dir)
 
 
-class _Trie(object):
+class _Tree(object):
     def __init__(self, label=None, parent=None,
                  full_label_to_str=_full_label_to_str):
         """
@@ -77,7 +77,7 @@ class _Trie(object):
         ----------
         label: some DataType element, optional (default None)
             the label of this node
-        parent: `_Trie` object, optional (default None)
+        parent: `_Tree` object, optional (default None)
             the parent of this node
         full_label_to_str: function, optional
             a function which converts a list of labels to a single label
@@ -107,12 +107,12 @@ class _Trie(object):
 
         Parameters
         ----------
-        parent: `_Trie` object
+        parent: `_Tree` object
             the would be parent of this node
 
         Returns
         -------
-        self: `_Trie` object
+        self: `_Tree` object
             this node
 
         """
@@ -138,12 +138,12 @@ class _Trie(object):
 
         Parameters
         ----------
-        child: Trie object
+        child: Tree object
             child to be added to self
 
         Returns
         -------
-        self: Trie instance
+        self: Tree instance
             self, after adding the child
 
         """
@@ -235,14 +235,14 @@ class _Trie(object):
 
     def as_dict(self):
         """
-        Converts trie into dict.
+        Converts tree into dict.
 
         Returns
         -------
         name: string
             name of the dict
         d: dict
-            the dict representation of this trie
+            the dict representation of this tree
 
         """
 
@@ -262,7 +262,7 @@ def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
         arity of the tree
     label: int, optional (default None)
         label of root node of the binary tree
-    parent: Trie object, optional (default None)
+    parent: Tree object, optional (default None)
         parent node of the binary tree
     alphabet: list of length n, optional (default)
         alphabet of symbols
@@ -273,7 +273,7 @@ def make_nary_tree(depth, n, label=None, parent=None, alphabet=None):
                                 ) and isinstance(
         label, int) and 0 <= label < n else label
 
-    node = _Trie(label=label, parent=parent)
+    node = _Tree(label=label, parent=parent)
 
     if depth == 0:
         return node
@@ -294,15 +294,15 @@ def make_bt(depth):
     return make_nary_tree(depth, 2)
 
 
-def as_trie(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
+def as_tree(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
             depth=None, parent=None, full_label_to_str=_full_label_to_str):
     """
-    Generates a trie representation of given data.
+    Generates a tree representation of given data.
 
     Parameters
     ----------
     data: some DataType object
-        the data to be trie-represented
+        the data to be tree-represented
     get_head: function
         a function on `DataType` which returns the head of the data. Thus
         the function must be useable as follows: head = get_head(data)
@@ -326,16 +326,16 @@ def as_trie(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
 
     Returns
     -------
-    trie: `_Trie` object
-        the trie representation of the data
+    tree: `_Tree` object
+        the tree representation of the data
 
     """
 
     # sanitize depth
     depth = INFINITY if depth is None else depth
 
-    # pack head of data into _Trie node
-    node = _Trie(label=get_head(data, parent), parent=parent,
+    # pack head of data into _Tree node
+    node = _Tree(label=get_head(data, parent), parent=parent,
                  full_label_to_str=full_label_to_str)
 
     if is_leaf(data) or depth == 0:
@@ -349,12 +349,12 @@ def as_trie(data, get_head, expand, is_leaf=_is_leaf, is_bad_item=_is_bad_item,
                 if get_head(x) == -1:
                     continue
 
-                as_trie(x, get_head, expand,
+                as_tree(x, get_head, expand,
                         is_leaf, is_bad_item=is_bad_item, depth=depth - 1,
                         parent=node, full_label_to_str=full_label_to_str)
         print
 
-    # return _Trie node
+    # return _Tree node
     return node
 
 
@@ -380,12 +380,12 @@ def linux_tree(directory, depth=None,
         list of file extensions whose contents will be returned for their
         head (during calls to get_head(...))
     display: bool, optional (default True)
-        display final trie structure
+        display final tree structure
 
     Returns
     -------
-    tree: `_Trie` object
-        trie representation of the directory
+    tree: `_Tree` object
+        tree representation of the directory
 
     """
 
@@ -421,52 +421,52 @@ def linux_tree(directory, depth=None,
     def full_label_to_str(full_label):
         return os.path.join(*tuple(full_label))
 
-    # get trie reprensetation
-    trie = as_trie(directory, get_head, expand, is_leaf=is_leaf,
+    # get tree reprensetation
+    tree = as_tree(directory, get_head, expand, is_leaf=is_leaf,
                    is_bad_item=is_bad_item, depth=depth,
                    full_label_to_str=full_label_to_str)
 
-    # display trie
+    # display tree
     if display:
-        trie.display()
+        tree.display()
 
-    return trie
+    return tree
 
 
-def dict2trie(d, name="", parent=None):
+def dict2tree(d, name="", parent=None):
     """
-    Converts a dict into _Trie object.
+    Converts a dict into _Tree object.
 
     Parameters
     ----------
     d: dict
-        dict object to be converted intto _Trie object
+        dict object to be converted intto _Tree object
     name: string, optional (default "")
         the name of the dict
-    parent: _Trie object, optional (default None)
+    parent: _Tree object, optional (default None)
         parent node of the node being generated
 
     Returns
     -------
-    node: _Trie object
-        trie representation of the input dict
+    node: _Tree object
+        tree representation of the input dict
 
     """
 
-    node = _Trie(label=name, parent=parent)
+    node = _Tree(label=name, parent=parent)
 
     if isinstance(d, dict):
         for k, v in d.iteritems():
             if isinstance(v, dict):
-                dict2trie(v, name=k, parent=node)
+                dict2tree(v, name=k, parent=node)
             else:
-                _Trie(label='%s: %s' % (k, v), parent=node)
+                _Tree(label='%s: %s' % (k, v), parent=node)
 
     return node
 
 
 if __name__ == "__main__":
-    output_dir = "/tmp/pytries_demo"
+    output_dir = "/tmp/pytrees_demo"
 
     # current directory listing
     print "\r\nBuilding current directory listing..."
@@ -491,7 +491,7 @@ if __name__ == "__main__":
 
     # locals
     print "\r\nBuilding locals()..."
-    dict2trie(locals(), name="locals").as_html(
+    dict2tree(locals(), name="locals").as_html(
         report_filename=os.path.join(output_dir, "locals.html"),
         title="Python locals"
         )
