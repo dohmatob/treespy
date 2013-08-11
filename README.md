@@ -1,7 +1,7 @@
-pytrees
+treespy
 =======
 
-Tiny python tool for automatic [tree](http://en.wikipedia.org/wiki/Tree_%28data_structure%29) representation of hierarchical data structures (dictionaries, regular
+**treespy** is a tiny Python tool for automatic [tree](http://en.wikipedia.org/wiki/Tree_%28data_structure%29) representation of hierarchical data structures (dictionaries, regular
 expressions, directory structure).
 
 It includes automatic generation of html-based jquery-animated reports.
